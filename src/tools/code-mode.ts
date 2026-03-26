@@ -10,7 +10,7 @@ interface CodeModeEnv {
     FRED_API_KEY?: string;
 }
 
-export function registerCodeMode(server: McpServer, env: CodeModeEnv) {
+export function registerCodeMode(server: McpServer, env: CodeModeEnv): void {
     if (env.FRED_API_KEY) {
         setFredApiKey(env.FRED_API_KEY);
     }

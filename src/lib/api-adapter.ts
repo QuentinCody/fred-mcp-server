@@ -3,7 +3,7 @@ import { fredFetch } from "./http";
 
 let envApiKey: string | undefined;
 
-export function setFredApiKey(key: string | undefined) {
+export function setFredApiKey(key: string | undefined): void {
     envApiKey = key;
 }
 
