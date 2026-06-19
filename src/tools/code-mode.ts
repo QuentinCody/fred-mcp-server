@@ -25,6 +25,8 @@ export function registerCodeMode(server: McpServer, env: CodeModeEnv): void {
 
     const executeTool = createExecuteTool({
         prefix: "fred",
+        // Verifiable provenance: fred_execute results carry a _meta.citation.
+        source: { id: "fred", name: "FRED (St. Louis Fed)", url: "https://fred.stlouisfed.org" },
         catalog: fredCatalog,
         apiFetch,
         doNamespace: env.FRED_DATA_DO,
