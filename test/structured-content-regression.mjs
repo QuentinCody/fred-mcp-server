@@ -38,7 +38,7 @@ console.log(`${BLUE}🧪 FRED Structured Content Regression Tests${RESET}`);
 
 const indexContent = readFile('src/index.ts');
 assertContains('src/index.ts', indexContent, 'FredDataDO', 'index.ts exports FredDataDO');
-assertContains('src/index.ts', indexContent, 'McpAgent', 'index.ts uses McpAgent');
+assertContains('src/index.ts', indexContent, 'StatelessMcpWorker', 'index.ts uses StatelessMcpWorker');
 
 const codeModeContent = readFile('src/tools/code-mode.ts');
 assertContains('src/tools/code-mode.ts', codeModeContent, 'createSearchTool', 'code-mode.ts uses createSearchTool');
