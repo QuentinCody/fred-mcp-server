@@ -1,13 +1,19 @@
 import type { ApiCatalog } from "@bio-mcp/shared/codemode/catalog";
+import {releaseWorkflows} from "./release-workflows";
 
 export const fredCatalog: ApiCatalog = {
     name: "FRED (Federal Reserve Economic Data)",
     baseUrl: "https://api.stlouisfed.org/fred",
-    version: "1.0",
+    version: "1.0 plus v2 release observations",
     auth: "required",
-    endpointCount: 15,
+    endpointCount: 16,
     notes:
-        "- All requests require api_key and file_type=json params (auto-injected)\n" +
+        "- Configure FRED_API_KEY on the Worker; credentials are never supplied in Code Mode.\n" +
+        "- v1 auto-injects api_key/file_type=json; v2 uses Authorization: Bearer and format=json.\n" +
+        "- V2 bulk observations are current historical values, NOT ALFRED revision history. Use v1 real-time/vintage selectors for as-of queries.\n" +
+        "- Preserve last_updated and per-series metadata across cursor pages; series can span pages and updates can occur mid-retrieval.\n" +
+        "- Staged v2 pages expose observations, fred_series and fred_page; original records remain in native_json and exact JSON in provenance.raw_json. Resume the bulk recipe with its checkpoint to retain revision/cursor history.\n" +
+        "- Full MCP/SQL envelopes stage above 30 KiB. Native error evidence and source coverage survive staging; cursor exhaustion does not prove an atomic snapshot.\n" +
         "- Core endpoint: /series/observations — returns {observations: [{date, value}]}\n" +
         "- Popular series IDs: GDP, CPIAUCSL, UNRATE, FEDFUNDS, DGS10, DGS2, T10Y2Y,\n" +
         "  MORTGAGE30US, SP500, DEXUSEU, WTISPLC, M2SL, HOUST, RSXFS, PAYEMS\n" +
@@ -19,7 +25,13 @@ export const fredCatalog: ApiCatalog = {
         "- Search supports order_by: search_rank, series_id, title, units, frequency,\n" +
         "  seasonal_adjustment, realtime_start, realtime_end, last_updated, observation_start,\n" +
         "  observation_end, popularity, group_popularity",
+    workflows: releaseWorkflows,
     endpoints: [
+        {method: "GET", path: "/v2/release/observations", category: "releases", summary: "Get one cursor page of observations across all series in a release. Full series/source/copyright metadata and string values (including missing '.') survive; repeat a series across pages without overwriting earlier observations. No vintage filter or atomic-snapshot guarantee.",
+            queryParams: [{name: "release_id", type: "number", required: true, description: "Positive release ID discovered through /releases"},
+                {name: "format", type: "string", required: false, enum: ["json"], description: "JSON for cursor/metadata validation; adapter does not expose XML"},
+                {name: "limit", type: "number", required: false, description: "Observation count per page: adapter 1–10000, default 1000 (provider supports up to 500000). 4 MiB cap; lower limit if too large."},
+                {name: "next_cursor", type: "string", required: false, description: "Opaque cursor from prior response; omit on the first request and keep release_id fixed"}]},
         // --- Series ---
         {
             method: "GET",
@@ -31,7 +43,13 @@ export const fredCatalog: ApiCatalog = {
                 { name: "observation_start", type: "string", required: false, description: "Start date YYYY-MM-DD" },
                 { name: "observation_end", type: "string", required: false, description: "End date YYYY-MM-DD" },
                 { name: "frequency", type: "string", required: false, description: "Frequency aggregation: d, w, bw, m, q, sa, a" },
-                { name: "units", type: "string", required: false, description: "Data transformation: lin, chg, ch1, pch, pc1, pca, cch, log" },
+                { name: "units", type: "string", required: false, description: "Data transformation: lin, chg, ch1, pch, pc1, pca, cch, cca, log" },
+                { name: "realtime_start", type: "string", required: false, description: "Start of real-time knowledge period, YYYY-MM-DD; not observation_start" },
+                { name: "realtime_end", type: "string", required: false, description: "End of real-time knowledge period; set both to one as-of date for a historical snapshot" },
+                { name: "vintage_dates", type: "string", required: false, description: "Explicit comma-separated vintage dates; an alternative to real-time period selection" },
+                { name: "output_type", type: "number", required: false, description: "Provider output type: 1 real-time periods, 2 all observations by vintage, 3 new/revised observations by vintage, 4 initial release only; preserve returned schema" },
+                { name: "offset", type: "number", required: false, description: "Observation page offset" },
+                { name: "aggregation_method", type: "string", required: false, description: "Frequency aggregation: avg, sum or eop" },
                 { name: "sort_order", type: "string", required: false, description: "asc or desc", default: "asc" },
                 { name: "limit", type: "number", required: false, description: "Max observations (max 100000)", default: 100000 },
             ],

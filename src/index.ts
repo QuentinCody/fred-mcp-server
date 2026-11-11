@@ -38,6 +38,8 @@ export default {
             return buildHealthResponse("fred");
         }
 
+        if (url.pathname === "/readyz") return MyMCP.readiness(env, "fred");
+
         if (url.pathname === "/mcp") {
             return MyMCP.serve("/mcp").fetch(request, env, ctx);
         }
